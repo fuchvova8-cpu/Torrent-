@@ -24,22 +24,37 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''
 
-      - name: Accept Android SDK licenses
+      - name: Accept licenses
         run: yes | sdkmanager --licenses || true
 
-      - name: Install Android SDK packages
+      - name: Install SDK packages
         run: |
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
 
-      - name: Grant Gradle permission
-        run: chmod +x gradlew
+      - name: Locate project
+        run: |
+          if [ -f settings.gradle ]; then
+            echo "PROJECT_DIR=." >> $GITHUB_ENV
+          elif [ -f InWebViewTV_Test/settings.gradle ]; then
+            echo "PROJECT_DIR=InWebViewTV_Test" >> $GITHUB_ENV
+          else
+            echo "ERROR: settings.gradle not found"
+            exit 1
+          fi
 
       - name: Build APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: InWebViewTV-Test
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
